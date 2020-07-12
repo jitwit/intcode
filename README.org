@@ -75,12 +75,12 @@ implementing the intcode spec.
 #+name: store/load
 #+begin_src scheme :session
 (define (store! addr val)
-  (if (fx< addr size)
+  (if (fx<? addr size)
       (vector-set! memory-1 addr val)
       (hashtable-set! memory-2 addr val)))
 
 (define (ref addr)
-  (if (fx< addr size)
+  (if (fx<? addr size)
       (vector-ref memory-1 addr)
       (hashtable-ref memory-2 addr 0)))
 #+end_src
@@ -148,8 +148,8 @@ correspond to the following operations:
       ((4) (set! status 'out) (push! (val op 1) out) (ip! 2))
       ((5) (if (fxzero? (val op 1)) (ip! 3) (set! ip (val op 2))))
       ((6) (if (fxzero? (val op 1)) (set! ip (val op 2)) (ip! 3)))
-      ((7) (store! (addr op 3) (if (fx< (val op 1) (val op 2)) 1 0)) (ip! 4))
-      ((8) (store! (addr op 3) (if (fx= (val op 1) (val op 2)) 1 0)) (ip! 4))
+      ((7) (store! (addr op 3) (if (fx<? (val op 1) (val op 2)) 1 0)) (ip! 4))
+      ((8) (store! (addr op 3) (if (fx=? (val op 1) (val op 2)) 1 0)) (ip! 4))
       ((9) (rb! (val op 1)) (ip! 2))
       ((99) (set! status 'done))
       (else (error 'intcode "bad opcode" op)))))
@@ -227,7 +227,7 @@ expression in the ~incode~ definition's body:
 	   x)))))
 
 (define (digit-at i n)
-  (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
+  (fxmod (fxdiv n (expt 10 (fx+ i 1))) 10))
 #+end_src
 
 * External Interface
@@ -305,7 +305,10 @@ appropriate symbols and arguments to some functions.
       (lp (read-char in) #t n program))
      (else
       (error 'parse-intcode
-	     (format "unexpected char: ~a at index ~a~%" x (port-position in)))))))
+	     (string-append "unexpected char: "
+			    (string x)
+			    " at index "
+			    (number->string (port-position in))))))))
 #+end_src
 
 The export list, to splice in packaged libraries:
@@ -329,47 +332,16 @@ run-intcode
 
 * Packaging and Libraries
 
-** ChezScheme
+This is a r6rs scheme library and is known by me to work with at least
+ChezScheme and GNU Guile.
 
-Originally written in ChezScheme, my preferred scheme at the moment,
-and thus the simplest scheme to package for. Whats missing is an easy
-way to parse the comma separated ints.
-
-#+begin_src scheme :session :tangle chez/intcode.sls :noweb yes
-(library (intcode)
-  (export ; export-list
-          <<exports>>)
-  (import (chezscheme))
-
-  <<misc>>
-
-  <<intcode>>
-
-  <<library-interface>>)
-#+end_src
-
-** Guile
-
-Easiest route is probably using r6rs. Guile is has slightly different
-hashtable fixnum interfaces, so a small compatability wrapper is in
-order.
-
-#+name: guile-compat
-#+begin_src scheme :session
-(define fx/ fxdiv)
-(define fx< fx<?)
-(define fx= fx=?)
-#+end_src
-
-#+begin_src scheme :session :tangle guile/intcode.scm :noweb yes
+#+begin_src scheme :session :tangle intcode.scm :noweb yes
 #!r6rs
 (library (intcode)
   (export ; export-list
           <<exports>>)
   (import (rnrs))
 
-  <<guile-compat>>
-
   <<misc>>
 
   <<intcode>>
@@ -377,12 +349,3 @@ order.
   <<library-interface>>)
 #+end_src
 
-
-* Coda
-
-More than anything the exercise of making this literate is convincing
-me that Knuth is right about literate programming. Granted, this isn't
-exactly the most complicated or large scale project, but splicing the
-various pieces together literately is easy as π and the reflection
-that it takes to transliterate the program has helped me spot some
-areas to improve.
