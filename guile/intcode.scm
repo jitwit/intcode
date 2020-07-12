@@ -30,7 +30,7 @@
   	   x)))))
   
   (define (digit-at i n)
-    (fxmod (fxdiv n (expt 10 (fx+ i 1))) 10))
+    (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
 
   (define (intcode program)
     (define ip 0)                           ; instruction pointer
@@ -58,12 +58,12 @@
       (set! relative-base (fx+ relative-base dx)))
   
     (define (store! addr val)
-      (if (fx<? addr size)
+      (if (fx< addr size)
           (vector-set! memory-1 addr val)
           (hashtable-set! memory-2 addr val)))
     
     (define (ref addr)
-      (if (fx<? addr size)
+      (if (fx< addr size)
           (vector-ref memory-1 addr)
           (hashtable-ref memory-2 addr 0)))
   
@@ -89,8 +89,8 @@
           ((4) (set! status 'out) (push! (val op 1) out) (ip! 2))
           ((5) (if (fxzero? (val op 1)) (ip! 3) (set! ip (val op 2))))
           ((6) (if (fxzero? (val op 1)) (set! ip (val op 2)) (ip! 3)))
-          ((7) (store! (addr op 3) (if (fx<? (val op 1) (val op 2)) 1 0)) (ip! 4))
-          ((8) (store! (addr op 3) (if (fx=? (val op 1) (val op 2)) 1 0)) (ip! 4))
+          ((7) (store! (addr op 3) (if (fx< (val op 1) (val op 2)) 1 0)) (ip! 4))
+          ((8) (store! (addr op 3) (if (fx= (val op 1) (val op 2)) 1 0)) (ip! 4))
           ((9) (rb! (val op 1)) (ip! 2))
           ((99) (set! status 'done))
           (else (error 'intcode "bad opcode" op)))))
@@ -187,8 +187,4 @@
         (assert (zero? n)) ; previous should have been comma or start of parse => n = 0
         (lp (read-char in) #t n program))
        (else
-        (error 'parse-intcode
-  	     (string-append "unexpected char: "
-  			    (string x)
-  			    " at index "
-  			    (number->string (port-position in)))))))))
+        (format "unexpected char: ~s at index ~a~%" x (port-position in)))))))
