@@ -282,42 +282,14 @@ appropriate symbols and arguments to some functions.
   (apply M 'in input-signals)
   (run-until-halt M)
   (read-output M))
-#+end_src
 
-#+name: exports
-#+begin_src scheme :session :exports none
-step
-send-input
-get-input
-get-output
-read-output
-status
-run-until
-run-until-halt
-done?
-blocked?
-run-intcode
-#+end_src
-
-
-* Packaging and Libraries
-
-** ChezScheme
-
-Originally written in ChezScheme, my preferred scheme at the moment,
-and thus the simplest scheme to package for. Whats missing is an easy
-way to parse the comma separated ints.
-
-#+name: chez-compat
-#+begin_src scheme :session
 (define (parse-intcode . port)
   (define in
     (if (null? port) (current-input-port) (car port)))
-  (define port-size (port-length in))
   (let lp ((x (read-char in)) (negative? #f) (n 0) (program '()))
     (cond
-     ((or (eof-object? x)
-	  (= port-size (port-position in)))
+     ((or (eof-object? x) (and (char=? #\newline x)
+			       (eof-object? (peek-char in))))
       (reverse
        (if negative?
 	   (cons (- n) program)
@@ -336,15 +308,38 @@ way to parse the comma separated ints.
 	     (format "unexpected char: ~a at index ~a~%" x (port-position in)))))))
 #+end_src
 
+#+name: exports
+#+begin_src scheme :session :exports none
+step
+send-input
+get-input
+get-output
+read-output
+status
+run-until
+run-until-halt
+done?
+blocked?
+parse-intcode
+run-intcode
+#+end_src
+
+
+* Packaging and Libraries
+
+** ChezScheme
+
+Originally written in ChezScheme, my preferred scheme at the moment,
+and thus the simplest scheme to package for. Whats missing is an easy
+way to parse the comma separated ints.
+
 #+begin_src scheme :session :tangle chez/intcode.sls :noweb yes :exports none
 (library (intcode)
-  (export parse-intcode
+  (export ; export-list
           <<exports>>)
   (import (chezscheme))
 
   <<misc>>
-
-  <<chez-compat>>
 
   <<intcode>>
 
