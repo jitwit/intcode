@@ -227,7 +227,7 @@ expression in the ~incode~ definition's body:
 	   x)))))
 
 (define (digit-at i n)
-  (fxmod (fx/ n (expt 10 (1+ i))) 10))
+  (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
 #+end_src
 
 * External Interface
@@ -346,8 +346,34 @@ way to parse the comma separated ints.
   <<library-interface>>)
 #+end_src
 
+** Guile
 
+Easiest route is probably using r6rs. Guile is has slightly different
+hashtable fixnum interfaces, so a small compatability wrapper is in
+order.
 
+#+name: guile-compat
+#+begin_src scheme :session
+(define fx/ fxdiv)
+(define fx< fx<?)
+(define fx= fx=?)
+#+end_src
+
+#+begin_src scheme :session :tangle guile/intcode.scm :noweb yes :exports none
+#!r6rs
+(library (intcode)
+  (export ; export-list
+          <<exports>>)
+  (import (rnrs))
+
+  <<guile-compat>>
+
+  <<misc>>
+
+  <<intcode>>
+
+  <<library-interface>>)
+#+end_src
 
 
 * Coda

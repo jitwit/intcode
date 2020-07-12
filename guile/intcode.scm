@@ -1,3 +1,4 @@
+#!r6rs
 (library (intcode)
   (export ; export-list
           step
@@ -12,7 +13,11 @@
           blocked?
           parse-intcode
           run-intcode)
-  (import (chezscheme))
+  (import (rnrs))
+
+  (define fx/ fxdiv)
+  (define fx< fx<?)
+  (define fx= fx=?)
 
   (define-syntax push!
     (lambda (x)
