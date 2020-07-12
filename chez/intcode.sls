@@ -14,23 +14,6 @@
           run-intcode)
   (import (chezscheme))
 
-  (define-syntax push!
-    (lambda (x)
-      (syntax-case x ()
-        ((_ x xs)
-         #'(set! xs (cons x xs))))))
-  
-  (define-syntax pop!
-    (lambda (x)
-      (syntax-case x ()
-        ((_ xs)
-         #'(let ((x (car xs)))
-  	   (set! xs (cdr xs))
-  	   x)))))
-  
-  (define (digit-at i n)
-    (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
-
   (define (intcode program)
     (define ip 0)                           ; instruction pointer
     (define relative-base 0)                ; offset pointer
@@ -118,6 +101,23 @@
         ((reset!) (reset!))
         ((program) program)
         (else (error 'cpu "unknown message" me)))))
+
+  (define-syntax push!
+    (lambda (x)
+      (syntax-case x ()
+        ((_ x xs)
+         #'(set! xs (cons x xs))))))
+  
+  (define-syntax pop!
+    (lambda (x)
+      (syntax-case x ()
+        ((_ xs)
+         #'(let ((x (car xs)))
+  	   (set! xs (cdr xs))
+  	   x)))))
+  
+  (define (digit-at i n)
+    (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
 
   (define (parse-intcode . port)
     (define in

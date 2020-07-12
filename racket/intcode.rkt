@@ -17,33 +17,6 @@
          parse-intcode
          run-intcode)
 
-(define fxmod unsafe-fxmodulo)
-(define fx/ unsafe-fxquotient)
-(define fx+ unsafe-fx+)
-(define fx* unsafe-fx*)
-(define make-eq-hashtable make-hasheq)
-(define hashtable-set! hash-set!)
-(define hashtable-ref hash-ref)
-(define (fxzero? x)
-  (unsafe-fx= 0 x))
-
-(define-syntax push!
-  (lambda (x)
-    (syntax-case x ()
-      ((_ x xs)
-       #'(set! xs (cons x xs))))))
-
-(define-syntax pop!
-  (lambda (x)
-    (syntax-case x ()
-      ((_ xs)
-       #'(let ((x (car xs)))
-	   (set! xs (cdr xs))
-	   x)))))
-
-(define (digit-at i n)
-  (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
-
 (define (intcode program)
   (define ip 0)                           ; instruction pointer
   (define relative-base 0)                ; offset pointer
@@ -181,3 +154,30 @@
   (apply M 'in input)
   (run-until-halt M)
   (read-output M))
+
+(define fxmod unsafe-fxmodulo)
+(define fx/ unsafe-fxquotient)
+(define fx+ unsafe-fx+)
+(define fx* unsafe-fx*)
+(define make-eq-hashtable make-hasheq)
+(define hashtable-set! hash-set!)
+(define hashtable-ref hash-ref)
+(define (fxzero? x)
+  (unsafe-fx= 0 x))
+
+(define-syntax push!
+  (lambda (x)
+    (syntax-case x ()
+      ((_ x xs)
+       #'(set! xs (cons x xs))))))
+
+(define-syntax pop!
+  (lambda (x)
+    (syntax-case x ()
+      ((_ xs)
+       #'(let ((x (car xs)))
+	   (set! xs (cdr xs))
+	   x)))))
+
+(define (digit-at i n)
+  (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))

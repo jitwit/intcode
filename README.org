@@ -2,11 +2,11 @@
 
 * Intcode Interpreter
 
-For advent of code 2019, a byte language called intcode was the
-assembly language. It was used in almost half of the problems and in
-my opinion lead to some really creative and fun puzzles. An intcode
-program is a list of comma-seperated ints. This is a literate program
-that intreprets intcode programs.
+For advent of code 2019 the assembly language was intcode. Intcode
+appears in almost half of the problems and lead to some creative and
+fun puzzles. An intcode program is given as a list of comma-seperated
+ints. The following literate program outpus to [[file:chez/intcode.sls][ChezScheme]], [[file:guile/intcode.scm][GNU Guile]],
+and [[file:racket/intcode.rkt][Racket]] libraries/modules.
 
 ** Internals
 
@@ -285,7 +285,7 @@ appropriate symbols and arguments to some functions.
 
 ** Parsing
 
-#+name: r6rs-pars-intcode
+#+name: r6rs-parse-intcode
 #+begin_src scheme :session
 (define (parse-intcode . port)
   (define in
@@ -351,11 +351,11 @@ way to parse the comma separated ints.
           <<exports>>)
   (import (chezscheme))
 
-  <<misc>>
-
   <<intcode>>
 
-  <<r6rs-pars-intcode>>
+  <<misc>>
+
+  <<r6rs-parse-intcode>>
 
   <<library-interface>>)
 #+end_src
@@ -380,9 +380,13 @@ order.
           <<exports>>)
   (import (rnrs))
 
+  <<intcode>>
+
+  <<r6rs-parse-intcode>>
+
   <<misc>>
 
-  <<intcode>>
+  <<guile-compat>>
 
   <<library-interface>>)
 #+end_src
@@ -413,13 +417,13 @@ A shim:
 (provide ; provisions
          <<exports>>)
 
-<<racket-compat>>
-
-<<misc>>
-
 <<intcode>>
 
 <<racket-parse-intcode>>
 
 <<library-interface>>
+
+<<racket-compat>>
+
+<<misc>>
 #+end_src

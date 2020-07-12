@@ -15,23 +15,6 @@
           run-intcode)
   (import (rnrs))
 
-  (define-syntax push!
-    (lambda (x)
-      (syntax-case x ()
-        ((_ x xs)
-         #'(set! xs (cons x xs))))))
-  
-  (define-syntax pop!
-    (lambda (x)
-      (syntax-case x ()
-        ((_ xs)
-         #'(let ((x (car xs)))
-  	   (set! xs (cdr xs))
-  	   x)))))
-  
-  (define (digit-at i n)
-    (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
-
   (define (intcode program)
     (define ip 0)                           ; instruction pointer
     (define relative-base 0)                ; offset pointer
@@ -119,6 +102,49 @@
         ((reset!) (reset!))
         ((program) program)
         (else (error 'cpu "unknown message" me)))))
+
+  (define (parse-intcode . port)
+    (define in
+      (if (null? port) (current-input-port) (car port)))
+    (let lp ((x (read-char in)) (negative? #f) (n 0) (program '()))
+      (cond
+       ((or (eof-object? x) (and (char=? #\newline x)
+  			       (eof-object? (peek-char in))))
+        (reverse
+         (if negative?
+  	   (cons (- n) program)
+  	   (cons n program))))
+       ((char<=? #\0 x #\9)
+        (lp (read-char in) negative? (+ (* 10 n) (char->integer x) -48) program))
+       ((char=? x #\,)
+        (if negative?
+  	  (lp (read-char in) #f 0 (cons (- n) program))
+  	  (lp (read-char in) #f 0 (cons n program))))
+       ((char=? x #\-)
+        (lp (read-char in) #t n program))
+       (else
+        (format "unexpected char: ~s at index ~a~%" x (port-position in))))))
+
+  (define-syntax push!
+    (lambda (x)
+      (syntax-case x ()
+        ((_ x xs)
+         #'(set! xs (cons x xs))))))
+  
+  (define-syntax pop!
+    (lambda (x)
+      (syntax-case x ()
+        ((_ xs)
+         #'(let ((x (car xs)))
+  	   (set! xs (cdr xs))
+  	   x)))))
+  
+  (define (digit-at i n)
+    (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
+
+  (define fx/ fxdiv)
+  (define fx< fx<?)
+  (define fx= fx=?)
 
   (define (read-memory M addr)
     (M 'ref addr))
