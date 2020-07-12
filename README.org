@@ -259,15 +259,15 @@ appropriate symbols and arguments to some functions.
 (define (blocked? M)
   (eq? 'blocking-in (status M)))
 
-(define (run-intcode program . inputs)
+(define (run-intcode program . input-signals)
   (define M (intcode program))
-  (apply M 'in inputs)
+  (apply M 'in input-signals)
   (run-until-halt M)
   (read-output M))
 #+end_src
 
 #+name: exports
-#+begin_src scheme :session
+#+begin_src scheme :session :exports none
 step
 run
 send-input
@@ -287,9 +287,10 @@ run-intcode
 
 ** ChezScheme
 
-Originally written in ChezScheme, my preferred scheme at the moment.
+Originally written in ChezScheme, my preferred scheme at the moment,
+and thus the simplest scheme to package for.
 
-#+begin_src scheme :session :tangle chez/intcode.sls :noweb yes
+#+begin_src scheme :session :tangle chez/intcode.sls :noweb yes :exports none
 (library (intcode)
   (export ; export
           <<exports>>)
