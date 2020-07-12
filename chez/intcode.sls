@@ -1,6 +1,8 @@
 (library (intcode)
   (export ; export-list
-          step
+          step              ; small step
+          intcode-ref       ; read intcode memory at address
+          intcode-set!      ; set  intcdoe memory at address to value
           send-input
           get-input
           get-output
@@ -11,7 +13,10 @@
           done?
           blocked?
           parse-intcode
-          run-intcode)
+          intcode
+          run-intcode
+          fork-intcode
+	  )
   (import (chezscheme))
 
   (define (intcode program)
@@ -32,6 +37,15 @@
       (set! in '())
       (set! out '())
       (set! status 'ok))
+    
+    (define (fork! m1* m2* ip* rb* in* out* status*)
+      (set! memory-1 m1*)
+      (set! memory-2 m2*)
+      (set! ip ip*)
+      (set! relative-base rb*)
+      (set! in in*)
+      (set! out out*)
+      (set! status status*))
   
     (define (ip! dx)
       (set! ip (fx+ ip dx)))
@@ -66,7 +80,7 @@
         (case (fxmod op 100)
           ((1) (store! (addr op 3) (fx+ (val op 1) (val op 2))) (ip! 4))
           ((2) (store! (addr op 3) (fx* (val op 1) (val op 2))) (ip! 4))
-          ((3) (if (null? in) (set! status 'blocking-in)
+          ((3) (if (null? in) (set! status 'blocked)
                    (begin (set! status 'ok) (store! (addr op 1) (pop! in)) (ip! 2))))
           ((4) (set! status 'out) (push! (val op 1) out) (ip! 2))
           ((5) (if (fxzero? (val op 1)) (ip! 3) (set! ip (val op 2))))
@@ -80,7 +94,7 @@
     (lambda (me . args)
       (case me
         ;; by default status is ok and any other states will be detected
-        ;; in step (blocking-in, done, and out)
+        ;; in step (blocked, done, and out)
         ((step) (set! status 'ok) (step) status)
         ;; args represent input signals. generally 1 will be fed at a time
         ;; but this allows for more.
@@ -97,9 +111,11 @@
         ((ip) ip)
         ((rb) relative-base)
         ((ref) (apply ref args))
-        ((store!) (apply store! args))
+        ((set!) (apply store! args))
         ((reset!) (reset!))
         ((program) program)
+        ((core-dump) (list program memory-1 memory-2 ip relative-base in out status))
+        ((fork!) (apply fork! args))
         (else (error 'cpu "unknown message" me)))))
 
   (define-syntax push!
@@ -141,11 +157,11 @@
        (else
         (format "unexpected char: ~s at index ~a~%" x (port-position in))))))
 
-  (define (read-memory M addr)
+  (define (intcode-ref M addr)
     (M 'ref addr))
   
-  (define (store! M addr val)
-    (M 'store! addr val))
+  (define (intcode-set! M addr val)
+    (M 'set! addr val))
   
   (define (reset! M)
     (M 'reset!))
@@ -173,13 +189,20 @@
       (if (memq s status) s (run (step M)))))
   
   (define (run-until-halt M)
-    (run-until '(done blocking-in) M))
+    (run-until '(done blocked) M))
   
   (define (done? M)
     (eq? 'done (status M)))
   
   (define (blocked? M)
-    (eq? 'blocking-in (status M)))
+    (eq? 'blocked (status M)))
+  
+  (define (fork-intcode M)
+    (apply (lambda (p m1 m2 i r in out status)
+  	   (define M* (intcode p))
+  	   (M* 'fork! (vector-copy m1) (hashtable-copy m2 #t) i r in out status)
+  	   M*)
+  	 (M 'core-dump)))
   
   (define (run-intcode program . input)
     (define M (intcode program))
