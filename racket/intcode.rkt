@@ -19,6 +19,8 @@
 
 (define fxmod unsafe-fxmodulo)
 (define fx/ unsafe-fxquotient)
+(define fx+ unsafe-fx+)
+(define fx* unsafe-fx*)
 (define make-eq-hashtable make-hasheq)
 (define hashtable-set! hash-set!)
 (define hashtable-ref hash-ref)
@@ -131,8 +133,7 @@
       (else (error 'cpu "unknown message" me)))))
 
 (define (parse-intcode . port)
-  (define in
-    (if (null? port) (current-input-port) (car port)))
+  (define in (if (null? port) (current-input-port) (car port)))
   (map string->number (string-split (read-line in) ",")))
 
 (define (read-memory M addr)
@@ -175,8 +176,8 @@
 (define (blocked? M)
   (eq? 'blocking-in (status M)))
 
-(define (run-intcode program . input-signals)
+(define (run-intcode program . input)
   (define M (intcode program))
-  (apply M 'in input-signals)
+  (apply M 'in input)
   (run-until-halt M)
   (read-output M))

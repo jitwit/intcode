@@ -160,8 +160,8 @@
   (define (blocked? M)
     (eq? 'blocking-in (status M)))
   
-  (define (run-intcode program . input-signals)
+  (define (run-intcode program . input)
     (define M (intcode program))
-    (apply M 'in input-signals)
+    (apply M 'in input)
     (run-until-halt M)
     (read-output M)))

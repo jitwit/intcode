@@ -207,7 +207,7 @@ expression in the ~incode~ definition's body:
   <<intcode-handler>>)
 #+end_src
 
-* Miscellaneous
+** Miscellaneous
 
 #+name: misc
 #+begin_src scheme :session
@@ -229,7 +229,7 @@ expression in the ~incode~ definition's body:
   (fxmod (fx/ n (expt 10 (fx+ i 1))) 10))
 #+end_src
 
-* External Interface
+** External Interface
 
 Functions that make it easier to deal with intcode cells, passing
 appropriate symbols and arguments to some functions.
@@ -276,14 +276,14 @@ appropriate symbols and arguments to some functions.
 (define (blocked? M)
   (eq? 'blocking-in (status M)))
 
-(define (run-intcode program . input-signals)
+(define (run-intcode program . input)
   (define M (intcode program))
-  (apply M 'in input-signals)
+  (apply M 'in input)
   (run-until-halt M)
   (read-output M))
 #+end_src
 
-Primitive parsing for chez/guile:
+** Parsing
 
 #+name: r6rs-pars-intcode
 #+begin_src scheme :session
@@ -315,8 +315,7 @@ And for racket:
 #+name: racket-parse-intcode
 #+begin_src scheme :session
 (define (parse-intcode . port)
-  (define in
-    (if (null? port) (current-input-port) (car port)))
+  (define in (if (null? port) (current-input-port) (car port)))
   (map string->number (string-split (read-line in) ",")))
 #+end_src
 
@@ -396,6 +395,8 @@ A shim:
 #+begin_src scheme :session
 (define fxmod unsafe-fxmodulo)
 (define fx/ unsafe-fxquotient)
+(define fx+ unsafe-fx+)
+(define fx* unsafe-fx*)
 (define make-eq-hashtable make-hasheq)
 (define hashtable-set! hash-set!)
 (define hashtable-ref hash-ref)
