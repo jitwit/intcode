@@ -190,7 +190,7 @@ expression in the ~incode~ definition's body:
 #+end_src
 
 #+name: intcode
-#+begin_src scheme :session :noweb yes :exports none
+#+begin_src scheme :session :noweb yes
 (define (intcode program)
   <<intcode-local-state>>
 
@@ -308,8 +308,10 @@ appropriate symbols and arguments to some functions.
 	     (format "unexpected char: ~a at index ~a~%" x (port-position in)))))))
 #+end_src
 
+The export list, to splice in packaged libraries:
+
 #+name: exports
-#+begin_src scheme :session :exports none
+#+begin_src scheme :session
 step
 send-input
 get-input
@@ -333,7 +335,7 @@ Originally written in ChezScheme, my preferred scheme at the moment,
 and thus the simplest scheme to package for. Whats missing is an easy
 way to parse the comma separated ints.
 
-#+begin_src scheme :session :tangle chez/intcode.sls :noweb yes :exports none
+#+begin_src scheme :session :tangle chez/intcode.sls :noweb yes
 (library (intcode)
   (export ; export-list
           <<exports>>)
@@ -359,7 +361,7 @@ order.
 (define fx= fx=?)
 #+end_src
 
-#+begin_src scheme :session :tangle guile/intcode.scm :noweb yes :exports none
+#+begin_src scheme :session :tangle guile/intcode.scm :noweb yes
 #!r6rs
 (library (intcode)
   (export ; export-list
