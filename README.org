@@ -2,9 +2,11 @@
 
 * Intcode Interpreter
 
-For advent of code 2019, an byte language called intcode was the
-assembly language. An intcode program is a list of comma-seperated
-ints. This is a literate program that intreprets intcode programs.
+For advent of code 2019, a byte language called intcode was the
+assembly language. It was used in almost half of the problems and in
+my opinion lead to some really creative and fun puzzles. An intcode
+program is a list of comma-seperated ints. This is a literate program
+that intreprets intcode programs.
 
 ** Internals
 
@@ -187,12 +189,8 @@ expression in the ~incode~ definition's body:
     (else (error 'cpu "unknown message" me))))
 #+end_src
 
-** (intcode program)
-
-Bringing the internals together:
-
 #+name: intcode
-#+begin_src scheme :session :noweb yes
+#+begin_src scheme :session :noweb yes :exports none
 (define (intcode program)
   <<intcode-local-state>>
 
@@ -209,6 +207,13 @@ Bringing the internals together:
   <<intcode-handler>>)
 #+end_src
 
+
+* External Interface
+
+Functions that make it easier to deal with intcode cells, passing
+appropriate symbols and arguments to some functions.
+
+#+name: library-interface
 #+begin_src scheme :session
 (define (read-memory M addr)
   (M 'ref addr))
@@ -222,13 +227,11 @@ Bringing the internals together:
 (define (step M)
   (M 'step))
 
+;;; large step run
 (define (run M)
   (M 'run))
 
-(define (send-input M value)
-  (M 'in value))
-
-(define (send-input* M values)
+(define (send-input M . values)
   (apply M 'in values))
 
 (define (read-output M)
@@ -250,9 +253,6 @@ Bringing the internals together:
 (define (run-until-halt M)
   (run-until '(done blocking-in) M))
 
-(define (halt M)
-  (run-until '(done blocking-in) M))
-
 (define (done? M)
   (eq? 'done (status M)))
 
@@ -266,9 +266,47 @@ Bringing the internals together:
   (read-output M))
 #+end_src
 
+#+name: exports
+#+begin_src scheme :session
+step
+run
+send-input
+get-input
+get-output
+read-output
+status
+run-until
+run-until-halt
+done?
+blocked?
+run-intcode
+#+end_src
+
+
+* Packaging and Libraries
+
+** ChezScheme
+
+Originally written in ChezScheme, my preferred scheme at the moment.
+
+#+begin_src scheme :session :tangle chez/intcode.sls :noweb yes
+(library (intcode)
+  (export ; export
+          <<exports>>)
+  (import (chezscheme))
+
+  <<intcode>>
+
+  <<library-interface>>)
+#+end_src
+
+
+
 * Coda
 
 More than anything the exercise of making this literate is convincing
 me that Knuth is right about literate programming. Granted, this isn't
 exactly the most complicated or large scale project, but splicing the
-various pieces together literately is easy as π.
+various pieces together literately is easy as π and the reflection
+that it takes to transliterate the program has helped me spot some
+areas to improve.
