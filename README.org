@@ -207,7 +207,6 @@ expression in the ~incode~ definition's body:
   <<intcode-handler>>)
 #+end_src
 
-
 * Miscellaneous
 
 #+name: misc
@@ -282,7 +281,12 @@ appropriate symbols and arguments to some functions.
   (apply M 'in input-signals)
   (run-until-halt M)
   (read-output M))
+#+end_src
 
+Primitive parsing for chez/guile:
+
+#+name: r6rs-pars-intcode
+#+begin_src scheme :session
 (define (parse-intcode . port)
   (define in
     (if (null? port) (current-input-port) (car port)))
@@ -301,11 +305,21 @@ appropriate symbols and arguments to some functions.
 	  (lp (read-char in) #f 0 (cons (- n) program))
 	  (lp (read-char in) #f 0 (cons n program))))
      ((char=? x #\-)
-      (assert (zero? n)) ; previous should have been comma or start of parse => n = 0
       (lp (read-char in) #t n program))
      (else
       (format "unexpected char: ~s at index ~a~%" x (port-position in))))))
 #+end_src
+
+And for racket:
+
+#+name: racket-parse-intcode
+#+begin_src scheme :session
+(define (parse-intcode . port)
+  (define in
+    (if (null? port) (current-input-port) (car port)))
+  (map string->number (string-split (read-line in) ",")))
+#+end_src
+
 
 #+name: exports
 #+begin_src scheme :session
@@ -322,7 +336,6 @@ blocked?
 parse-intcode
 run-intcode
 #+end_src
-
 
 * Packaging and Libraries
 
@@ -342,6 +355,8 @@ way to parse the comma separated ints.
   <<misc>>
 
   <<intcode>>
+
+  <<r6rs-pars-intcode>>
 
   <<library-interface>>)
 #+end_src
@@ -373,3 +388,37 @@ order.
   <<library-interface>>)
 #+end_src
 
+** Racket
+
+A shim:
+
+#+name: racket-compat
+#+begin_src scheme :session
+(define fxmod unsafe-fxmodulo)
+(define fx/ unsafe-fxquotient)
+(define make-eq-hashtable make-hasheq)
+(define hashtable-set! hash-set!)
+(define hashtable-ref hash-ref)
+(define (fxzero? x)
+  (unsafe-fx= 0 x))
+#+end_src
+
+#+begin_src scheme :session :tangle racket/intcode.rkt :noweb yes
+#lang racket
+
+(require racket/unsafe/ops
+	 racket/fixnum)
+
+(provide ; provisions
+         <<exports>>)
+
+<<racket-compat>>
+
+<<misc>>
+
+<<intcode>>
+
+<<racket-parse-intcode>>
+
+<<library-interface>>
+#+end_src

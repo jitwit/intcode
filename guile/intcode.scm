@@ -164,27 +164,4 @@
     (define M (intcode program))
     (apply M 'in input-signals)
     (run-until-halt M)
-    (read-output M))
-  
-  (define (parse-intcode . port)
-    (define in
-      (if (null? port) (current-input-port) (car port)))
-    (let lp ((x (read-char in)) (negative? #f) (n 0) (program '()))
-      (cond
-       ((or (eof-object? x) (and (char=? #\newline x)
-  			       (eof-object? (peek-char in))))
-        (reverse
-         (if negative?
-  	   (cons (- n) program)
-  	   (cons n program))))
-       ((char<=? #\0 x #\9)
-        (lp (read-char in) negative? (+ (* 10 n) (char->integer x) -48) program))
-       ((char=? x #\,)
-        (if negative?
-  	  (lp (read-char in) #f 0 (cons (- n) program))
-  	  (lp (read-char in) #f 0 (cons n program))))
-       ((char=? x #\-)
-        (assert (zero? n)) ; previous should have been comma or start of parse => n = 0
-        (lp (read-char in) #t n program))
-       (else
-        (format "unexpected char: ~s at index ~a~%" x (port-position in)))))))
+    (read-output M)))
