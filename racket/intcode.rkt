@@ -24,7 +24,7 @@
 (define (intcode program)
   (define ip 0)                           ; instruction pointer
   (define relative-base 0)                ; offset pointer
-  (define memory-1 `#(,@program))         ; memory (also initially the program)
+  (define memory-1 (vector-copy program)) ; memory (also initially the program)
   (define memory-2 (make-eq-hashtable))   ; extra memory for out of range references
   (define in '())                         ; input signals
   (define out '())                        ; output signals
@@ -34,7 +34,7 @@
   (define reset!
     (case-lambda
       (()
-       (set! memory-1 `#(,@program))
+       (set! memory-1 (vector-copy program))
        (set! memory-2 (make-eq-hashtable))
        (set! ip 0)
        (set! relative-base 0)
@@ -109,7 +109,7 @@
 
 (define (parse-intcode . port)
   (define in (if (null? port) (current-input-port) (car port)))
-  (map string->number (string-split (read-line in) ",")))
+  (list->vector (map string->number (string-split (read-line in) ","))))
 
 (define (intcode-ref M addr)
   (M 'ref addr))
@@ -117,7 +117,7 @@
 (define (intcode-set! M addr val)
   (M 'set! addr val))
 
-(define (reset! M)
+(define (reset-intcode M)
   (M 'reset!))
 
 (define (step M)

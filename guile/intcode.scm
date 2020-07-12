@@ -22,7 +22,7 @@
   (define (intcode program)
     (define ip 0)                           ; instruction pointer
     (define relative-base 0)                ; offset pointer
-    (define memory-1 `#(,@program))         ; memory (also initially the program)
+    (define memory-1 (vector-copy program)) ; memory (also initially the program)
     (define memory-2 (make-eq-hashtable))   ; extra memory for out of range references
     (define in '())                         ; input signals
     (define out '())                        ; output signals
@@ -32,7 +32,7 @@
     (define reset!
       (case-lambda
         (()
-         (set! memory-1 `#(,@program))
+         (set! memory-1 (vector-copy program))
          (set! memory-2 (make-eq-hashtable))
          (set! ip 0)
          (set! relative-base 0)
@@ -112,10 +112,11 @@
       (cond
        ((or (eof-object? x) (and (char=? #\newline x)
   			       (eof-object? (peek-char in))))
-        (reverse
-         (if negative?
-  	   (cons (- n) program)
-  	   (cons n program))))
+        (list->vector
+         (reverse
+  	(if negative?
+  	    (cons (- n) program)
+  	    (cons n program)))))
        ((char<=? #\0 x #\9)
         (lp (read-char in) negative? (+ (* 10 n) (char->integer x) -48) program))
        ((char=? x #\,)
@@ -154,7 +155,7 @@
   (define (intcode-set! M addr val)
     (M 'set! addr val))
   
-  (define (reset! M)
+  (define (reset-intcode M)
     (M 'reset!))
   
   (define (step M)
