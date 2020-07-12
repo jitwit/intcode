@@ -7,19 +7,18 @@
          step              ; small step
          intcode-ref       ; read intcode memory at address
          intcode-set!      ; set  intcdoe memory at address to value
-         send-input
-         get-input
-         get-output
-         read-output
-         status
-         run-until
-         run-until-halt
-         done?
-         blocked?
-         parse-intcode
-         intcode
-         run-intcode
-         fork-intcode
+         send-input        ; send list of values to intcode
+         read-output       ; read outputs of intcode, popping them
+         status            ; query state of intcode: ok/blocked/output/done
+         run-until         ; run intcode until given state is reacned
+         run-until-halt    ; (run-until '(blocked done) machine)
+         done?             ; (eq? 'done (status machine))
+         blocked?          ; (eq? blocked (status machine))
+         parse-intcode     ; parse a port containing comma-separated ints
+         intcode           ; create an intcode from a list of ints
+         run-intcode       ; run an intcode with a list of ints with rest of args the inputs
+         fork-intcode      ; copy an intcode's state to a new intcode
+         reset-intcode     ; reset an intcode's state
 	 )
 
 (define (intcode program)
@@ -32,23 +31,24 @@
   (define size (vector-length memory-1))  ; size (for use in indexing)
   (define status 'ok)                     ; status for querying
 
-  (define (reset!)
-    (set! memory-1 `#(,@program))
-    (set! memory-2 (make-eq-hashtable))
-    (set! ip 0)
-    (set! relative-base 0)
-    (set! in '())
-    (set! out '())
-    (set! status 'ok))
-  
-  (define (fork! m1* m2* ip* rb* in* out* status*)
-    (set! memory-1 m1*)
-    (set! memory-2 m2*)
-    (set! ip ip*)
-    (set! relative-base rb*)
-    (set! in in*)
-    (set! out out*)
-    (set! status status*))
+  (define reset!
+    (case-lambda
+      (()
+       (set! memory-1 `#(,@program))
+       (set! memory-2 (make-eq-hashtable))
+       (set! ip 0)
+       (set! relative-base 0)
+       (set! in '())
+       (set! out '())
+       (set! status 'ok))
+      ((m1* m2* ip* rb* in* out* status*)
+       (set! memory-1 m1*)
+       (set! memory-2 m2*)
+       (set! ip ip*)
+       (set! relative-base rb*)
+       (set! in in*)
+       (set! out out*)
+       (set! status status*))))
 
   (define (ip! dx)
     (set! ip (fx+ ip dx)))
@@ -96,29 +96,15 @@
 
   (lambda (me . args)
     (case me
-      ;; by default status is ok and any other states will be detected
-      ;; in step (blocked, done, and out)
       ((step) (set! status 'ok) (step) status)
-      ;; args represent input signals. generally 1 will be fed at a time
-      ;; but this allows for more.
       ((in) (set! in `(,@in ,@args)) (set! status 'ok))
-      ;; read the most recent output signal (car), without popping it.
-      ((out) (if (null? out) 'no-out (car out)))
-      ;; query the status/state of the cell
       ((status) status)
-      ;; read the whole output, flushing it, and return in chronological
-      ;; order.
       ((read-out!) (let ((tmp (reverse out))) (set! out '()) tmp))
-      ;; the following are mostly for debugging and inspection
-      ((peek-in) in)
-      ((ip) ip)
-      ((rb) relative-base)
       ((ref) (apply ref args))
       ((set!) (apply store! args))
-      ((reset!) (reset!))
+      ((reset!) (apply reset! args))
       ((program) program)
       ((core-dump) (list program memory-1 memory-2 ip relative-base in out status))
-      ((fork!) (apply fork! args))
       (else (error 'cpu "unknown message" me)))))
 
 (define (parse-intcode . port)
@@ -143,12 +129,6 @@
 (define (read-output M)
   (M 'read-out!))
 
-(define (get-input M)
-  (M 'peek-in))
-
-(define (get-output M)
-  (M 'out))
-
 (define (status M)
   (M 'status))
 
@@ -168,7 +148,7 @@
 (define (fork-intcode M)
   (apply (lambda (p m1 m2 i r in out status)
 	   (define M* (intcode p))
-	   (M* 'fork! (vector-copy m1) (hashtable-copy m2 #t) i r in out status)
+	   (M* 'reset! (vector-copy m1) (hashtable-copy m2 #t) i r in out status)
 	   M*)
 	 (M 'core-dump)))
 
