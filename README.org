@@ -3,9 +3,8 @@
 * Intcode Interpreter
 
 For advent of code 2019, an byte language called intcode was the
-assembly language.
-
-An intcode program is represented as a list of comma-seperated ints.
+assembly language. An intcode program is a list of comma-seperated
+ints. This is a literate program that intreprets intcode programs.
 
 ** Internals
 
@@ -71,7 +70,7 @@ decoding the opcode and how it indicates the parameters should be
 referenced. Getting this right was easily the most unpleasant part of
 implementing the intcode spec.
 
-#+name: store-load
+#+name: store/load
 #+begin_src scheme :session
 (define (store! addr val)
   (if (fx< addr size)
@@ -100,6 +99,7 @@ problem, in ~step~ digits should be decoded once and not within the
 ~val~ and ~addr~ functions!. Seeming more and more like literate
 programming is useful, though more work... *fixme!*
 
+#+name: val/addr
 #+begin_src scheme :session
 (define (val opcode param)
   (case (digit-at param opcode)
@@ -117,7 +117,7 @@ programming is useful, though more work... *fixme!*
 The wonky ordering of the modes is informed by profiling the various
 puzzles using chez's lovely tooling.
 
-** Small Steps
+*** Small Steps
 
 For maximal flexibility, I implement the interpreting as small
 step. This means the owner of an intcode cell can have fine-grained
@@ -153,12 +153,13 @@ correspond to the following operations:
       (else (error 'intcode "bad opcode" op)))))
 #+end_src
 
-** Interface from Messages
+*** Interface from Messages
 
 Being local state cells, these things dispatch on request messages à
 la SICP and scheme tradition. Here is the handler and the final
 expression in the ~incode~ definition's body:
 
+#+name: intcode-handler
 #+begin_src scheme :session
 (lambda (me . args)
   (case me
@@ -186,26 +187,29 @@ expression in the ~incode~ definition's body:
     (else (error 'cpu "unknown message" me))))
 #+end_src
 
+** (intcode program)
 
+Bringing the internals together:
+
+#+name: intcode
+#+begin_src scheme :session :noweb yes
+(define (intcode program)
+  <<intcode-local-state>>
+
+  <<reset>>
+
+  <<increment>>
+
+  <<store/load>>
+
+  <<val/addr>>
+
+  <<small-step>>
+
+  <<intcode-handler>>)
+#+end_src
 
 #+begin_src scheme :session
-(define (intcode program)
-  (lambda (me . args)
-    (case me
-      ((step) (set! status 'ok) (step) status)
-      ((in) (set! in `(,@in ,@args)) (set! status 'ok))
-      ((out) (if (null? out) 'no-out (car out)))
-      ((status) status)
-      ((read-out!) (let ((tmp (reverse out))) (set! out '()) tmp))
-      ((peek-in) in)
-      ((ip) ip)
-      ((rb) relative-base)
-      ((ref) (apply ref args))
-      ((store!) (apply store! args))
-      ((reset!) (reset!))
-      ((program) program)
-      (else (error 'cpu "unknown message" me)))))
-
 (define (read-memory M addr)
   (M 'ref addr))
 
