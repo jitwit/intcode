@@ -5,6 +5,7 @@
           intcode-set!      ; set  intcdoe memory at address to value
           send-input        ; send list of values to intcode
           read-output       ; read outputs of intcode, popping them
+          peek-output       ; read last output of intcode, leaving unchanged
           run-until         ; run intcode until given state is reacned
           run-until-halt    ; (run-until '(blocked done) machine)
           done?             ; (eq? 'done (status machine))
@@ -92,6 +93,7 @@
       (case me
         ((step) (step))
         ((in) (set! in `(,@in ,@args)) 'ok)
+        ((peek-out) (and (not (null? out)) (car out)))
         ((read-out!) (let ((tmp (reverse out))) (set! out '()) tmp))
         ((ref) (apply ref args))
         ((set!) (apply store! args))
@@ -158,6 +160,9 @@
   (define (read-output M)
     (M 'read-out!))
   
+  (define (peek-output M)
+    (M 'peek-out))
+  
   (define (run-until status M)
     (let run ((s (step M)))
       (if (memq s status) s (run (step M)))))
@@ -171,12 +176,15 @@
   (define (blocked? M)
     (eq? 'blocked (step M)))
   
+  (define (core-dump M)
+    (M 'core-dump))
+  
   (define (fork-intcode M)
     (apply (lambda (p m1 m2 i r in out)
   	   (define M* (intcode p))
   	   (M* 'reset! (vector-copy m1) (hashtable-copy m2 #t) i r in out)
   	   M*)
-  	 (M 'core-dump)))
+  	 (core-dump M)))
   
   (define (run-intcode program . input)
     (define M (intcode program))
