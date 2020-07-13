@@ -6,6 +6,7 @@
           send-input        ; send list of values to intcode
           read-output       ; read outputs of intcode, popping them
           peek-output       ; read last output of intcode, leaving unchanged
+          read-input        ; inspect machine's input
           run-until         ; run intcode until given state is reacned
           run-until-halt    ; (run-until '(blocked done) machine)
           done?             ; (eq? 'done (status machine))
@@ -36,7 +37,7 @@
          (set! relative-base 0)
          (set! in '())
          (set! out '()))
-        ((m1* m2* ip* rb* in* out* status*)
+        ((m1* m2* ip* rb* in* out*)
          (set! memory-1 m1*)
          (set! memory-2 m2*)
          (set! ip ip*)
@@ -178,6 +179,9 @@
   
   (define (core-dump M)
     (M 'core-dump))
+  
+  (define (read-input M)
+    (list-ref (core-dump M) 5))
   
   (define (fork-intcode M)
     (apply (lambda (p m1 m2 i r in out)
