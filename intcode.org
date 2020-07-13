@@ -18,7 +18,6 @@ compoents:
 (define in '())                         ; input signals
 (define out '())                        ; output signals
 (define size (vector-length memory-1))  ; size (for use in indexing)
-(define status 'ok)                     ; status for querying
 #+end_src
 
 #+RESULTS: intcode-local-state
@@ -43,16 +42,14 @@ receiving a request to reset:
      (set! ip 0)
      (set! relative-base 0)
      (set! in '())
-     (set! out '())
-     (set! status 'ok))
+     (set! out '()))
     ((m1* m2* ip* rb* in* out* status*)
      (set! memory-1 m1*)
      (set! memory-2 m2*)
      (set! ip ip*)
      (set! relative-base rb*)
      (set! in in*)
-     (set! out out*)
-     (set! status status*))))
+     (set! out out*))))
 #+end_src
 
 *** Incrementing Pointers
@@ -145,17 +142,18 @@ correspond to the following operations:
 (define (step)
   (let ((op (ref ip)))
     (case (fxmod op 100)
-      ((1) (store! (addr op 3) (fx+ (val op 1) (val op 2))) (ip! 4))
-      ((2) (store! (addr op 3) (fx* (val op 1) (val op 2))) (ip! 4))
-      ((3) (if (null? in) (set! status 'blocked)
-               (begin (set! status 'ok) (store! (addr op 1) (pop! in)) (ip! 2))))
-      ((4) (set! status 'out) (push! (val op 1) out) (ip! 2))
-      ((5) (if (fxzero? (val op 1)) (ip! 3) (set! ip (val op 2))))
-      ((6) (if (fxzero? (val op 1)) (set! ip (val op 2)) (ip! 3)))
-      ((7) (store! (addr op 3) (if (fx< (val op 1) (val op 2)) 1 0)) (ip! 4))
-      ((8) (store! (addr op 3) (if (fx= (val op 1) (val op 2)) 1 0)) (ip! 4))
-      ((9) (rb! (val op 1)) (ip! 2))
-      ((99) (set! status 'done))
+      ((1) (store! (addr op 3) (fx+ (val op 1) (val op 2))) (ip! 4) 'ok)
+      ((2) (store! (addr op 3) (fx* (val op 1) (val op 2))) (ip! 4) 'ok)
+      ((3) (if (null? in)
+	       'blocked
+               (begin (store! (addr op 1) (pop! in)) (ip! 2) 'ok)))
+      ((4) (push! (val op 1) out) (ip! 2) 'out)
+      ((5) (if (fxzero? (val op 1)) (ip! 3) (set! ip (val op 2))) 'ok)
+      ((6) (if (fxzero? (val op 1)) (set! ip (val op 2)) (ip! 3)) 'ok)
+      ((7) (store! (addr op 3) (if (fx< (val op 1) (val op 2)) 1 0)) (ip! 4) 'ok)
+      ((8) (store! (addr op 3) (if (fx= (val op 1) (val op 2)) 1 0)) (ip! 4) 'ok)
+      ((9) (rb! (val op 1)) (ip! 2) 'ok)
+      ((99) 'done)
       (else (error 'intcode "bad opcode" op)))))
 #+end_src
 
@@ -169,15 +167,14 @@ expression in the ~incode~ definition's body:
 #+begin_src scheme :session
 (lambda (me . args)
   (case me
-    ((step) (set! status 'ok) (step) status)
-    ((in) (set! in `(,@in ,@args)) (set! status 'ok))
-    ((status) status)
+    ((step) (step))
+    ((in) (set! in `(,@in ,@args)) 'ok)
     ((read-out!) (let ((tmp (reverse out))) (set! out '()) tmp))
     ((ref) (apply ref args))
     ((set!) (apply store! args))
     ((reset!) (apply reset! args))
     ((program) program)
-    ((core-dump) (list program memory-1 memory-2 ip relative-base in out status))
+    ((core-dump) (list program memory-1 memory-2 ip relative-base in out))
     (else (error 'cpu "unknown message" me))))
 #+end_src
 
@@ -246,9 +243,6 @@ appropriate symbols and arguments to some functions.
 (define (read-output M)
   (M 'read-out!))
 
-(define (status M)
-  (M 'status))
-
 (define (run-until status M)
   (let run ((s (step M)))
     (if (memq s status) s (run (step M)))))
@@ -257,15 +251,15 @@ appropriate symbols and arguments to some functions.
   (run-until '(done blocked) M))
 
 (define (done? M)
-  (eq? 'done (status M)))
+  (eq? 'done (step M)))
 
 (define (blocked? M)
-  (eq? 'blocked (status M)))
+  (eq? 'blocked (step M)))
 
 (define (fork-intcode M)
-  (apply (lambda (p m1 m2 i r in out status)
+  (apply (lambda (p m1 m2 i r in out)
 	   (define M* (intcode p))
-	   (M* 'reset! (vector-copy m1) (hashtable-copy m2 #t) i r in out status)
+	   (M* 'reset! (vector-copy m1) (hashtable-copy m2 #t) i r in out)
 	   M*)
 	 (M 'core-dump)))
 
@@ -321,7 +315,6 @@ intcode-ref       ; read intcode memory at address
 intcode-set!      ; set  intcdoe memory at address to value
 send-input        ; send list of values to intcode
 read-output       ; read outputs of intcode, popping them
-status            ; query state of intcode: ok/blocked/output/done
 run-until         ; run intcode until given state is reacned
 run-until-halt    ; (run-until '(blocked done) machine)
 done?             ; (eq? 'done (status machine))
